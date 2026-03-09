@@ -8,53 +8,24 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a1a;
-        }
-
-        #map {
-            height: 100vh;
-            width: 100vw;
-            z-index: 1;
-        }
-
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; }
+        #map { height: 100vh; width: 100vw; z-index: 1; }
+        
         #control-panel {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            max-width: 700px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 1000;
-            border-top: 6px solid #cc0000; 
-            text-align: center;
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 80%; max-width: 700px; background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000; border-top: 6px solid #cc0000; text-align: center;
         }
+        .time-display { font-size: 32px; font-weight: bold; color: #cc0000; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        .description { color: #333; font-size: 14px; margin-top: 10px; }
 
-        .time-display {
-            font-size: 32px;
-            font-weight: bold;
-            color: #cc0000;
-            margin-bottom: 10px;
-            font-variant-numeric: tabular-nums;
-        }
-
-        input[type=range] {
-            width: 100%;
-            cursor: pointer;
-        }
-
-        .description {
-            color: #333;
-            font-size: 14px;
-            margin-top: 10px;
-        }
+        /* Стили для всплывающего окна (попапа) с картинками */
+        .leaflet-popup-content { width: 250px !important; text-align: center; }
+        .popup-img { width: 100%; height: auto; border-radius: 4px; margin-top: 5px; margin-bottom: 10px; border: 1px solid #ccc; }
+        .popup-title { font-weight: bold; font-size: 15px; margin-bottom: 5px; }
+        .popup-time { color: #cc0000; font-size: 14px; font-weight: bold; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -70,7 +41,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // 1. Инициализация карты. Координаты центра Петрограда (Санкт-Петербурга)
+        // Инициализация карты
         const map = L.map('map').setView([59.9386, 30.3141], 13);
 
         // Добавляем черно-белую (стилизованную) подложку карты
@@ -80,61 +51,46 @@
             maxZoom: 19
         }).addTo(map);
 
-        // 2. База данных событий (минуты считаются от 00:00 25 октября)
-        // Отрицательные значения - это вечер 24 октября. > 1440 - это уже 26 октября.
+        // База данных событий (ОБРАТИ ВНИМАНИЕ НА ЗАПЯТЫЕ ПОСЛЕ DESC)
         const events = [
             {
-                minutes: 85, // 01:25
-                timeStr: "25 октября, 01:25",
-                coords: [59.930, 30.300], 
+                minutes: 85, timeStr: "25 октября, 01:25", coords: [59.930, 30.300], 
                 title: "Главный почтамт",
                 desc: "Захват отрядом матросов и красногвардейцев. Правительство лишается связи.",
                 img: "cite/img/pochtamt.jpg"
             },
             {
-                minutes: 120, // 02:00
-                timeStr: "25 октября, 02:00",
-                coords: [59.929, 30.362], 
+                minutes: 120, timeStr: "25 октября, 02:00", coords: [59.929, 30.362], 
                 title: "Николаевский (Московский) вокзал",
                 desc: "Установление контроля над вокзалом для пресечения переброски верных правительству войск.",
                 img: "cite/img/vokzal.jpg"
             },
             {
-                minutes: 210, // 03:30
-                timeStr: "25 октября, 03:30",
-                coords: [59.934, 30.278], 
+                minutes: 210, timeStr: "25 октября, 03:30", coords: [59.934, 30.278], 
                 title: "Крейсер «Аврора»",
                 desc: "Корабль бросает якорь у Николаевского моста, взяв под прицел центр города.",
                 img: "cite/img/aurora.jpg"
             },
             {
-                minutes: 360, // 06:00
-                timeStr: "25 октября, 06:00",
-                coords: [59.930, 30.325], 
+                minutes: 360, timeStr: "25 октября, 06:00", coords: [59.930, 30.325], 
                 title: "Государственный банк",
                 desc: "Гвардейский экипаж занимает здание. Финансовые потоки под контролем ВРК.",
                 img: "cite/img/bank.jpg"
             },
             {
-                minutes: 600, // 10:00
-                timeStr: "25 октября, 10:00",
-                coords: [59.948, 30.395], 
+                minutes: 600, timeStr: "25 октября, 10:00", coords: [59.948, 30.395], 
                 title: "Смольный институт (Штаб ВРК)",
                 desc: "Публикация воззвания В.И. Ленина «К гражданам России!». Временное правительство объявлено низложенным.",
                 img: "cite/img/inst.jpg"
             },
             {
-                minutes: 1300, // 21:40
-                timeStr: "25 октября, 21:40",
-                coords: [59.950, 30.316], 
+                minutes: 1300, timeStr: "25 октября, 21:40", coords: [59.950, 30.316], 
                 title: "Петропавловская крепость / Нева",
                 desc: "Холостой выстрел орудия крейсера «Аврора» — сигнал к началу штурма Зимнего дворца.",
                 img: "cite/img/neva.jpg"
             },
             {
-                minutes: 1570, // 02:10 (26 октября)
-                timeStr: "26 октября, 02:10",
-                coords: [59.940, 30.314], 
+                minutes: 1570, timeStr: "26 октября, 02:10", coords: [59.940, 30.314], 
                 title: "Зимний дворец",
                 desc: "Штурм завершен. В.А. Антонов-Овсеенко арестовывает министров Временного правительства.",
                 img: "cite/img/sturm.jpg"
@@ -152,7 +108,7 @@
 
         let currentMarkers = [];
 
-        // 3. Логика обновления карты в зависимости от времени
+        // Логика обновления карты
         const slider = document.getElementById('time-slider');
         const timeLabel = document.getElementById('time-label');
 
@@ -175,14 +131,17 @@
 
             currentMarkers.forEach(marker => map.removeLayer(marker));
             currentMarkers = [];
+            
             events.forEach(event => {
                 if (event.minutes <= currentMinutes) {
                     const marker = L.marker(event.coords, {icon: redIcon}).addTo(map);
                     
+                    // Обновленный HTML для вывода и текста, и картинки
                     marker.bindPopup(`
-                        <strong style="color: #cc0000; font-size: 16px;">${event.timeStr}</strong><br>
-                        <b>${event.title}</b><br>
-                        ${event.desc}
+                        <span class="popup-time">${event.timeStr}</span>
+                        <div class="popup-title">${event.title}</div>
+                        <img src="${event.img}" class="popup-img" alt="${event.title}">
+                        <div>${event.desc}</div>
                     `);
                     
                     currentMarkers.push(marker);
@@ -195,6 +154,4 @@
 
     </script>
 </body>
-
 </html>
-
