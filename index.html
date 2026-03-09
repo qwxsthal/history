@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Октябрь 1917: Хроника перелома</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+        }
+
+        #control-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
+            border-top: 6px solid #cc0000; 
+            text-align: center;
+        }
+
+        .time-display {
+            font-size: 32px;
+            font-weight: bold;
+            color: #cc0000;
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .description {
+            color: #333;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div id="control-panel">
+        <div class="time-display" id="time-label">24 октября, 23:00</div>
+        <input type="range" id="time-slider" min="0" max="1600" value="0" step="5">
+        <div class="description">Двигайте ползунок, чтобы увидеть развитие событий</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Инициализация карты. Координаты центра Петрограда (Санкт-Петербурга)
+        const map = L.map('map').setView([59.9386, 30.3141], 13);
+
+        // Добавляем черно-белую (стилизованную) подложку карты
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 2. База данных событий (минуты считаются от 00:00 25 октября)
+        // Отрицательные значения - это вечер 24 октября. > 1440 - это уже 26 октября.
+        const events = [
+            {
+                minutes: 85, // 01:25
+                timeStr: "25 октября, 01:25",
+                coords: [59.930, 30.300], 
+                title: "Главный почтамт",
+                desc: "Захват отрядом матросов и красногвардейцев. Правительство лишается связи."
+            },
+            {
+                minutes: 120, // 02:00
+                timeStr: "25 октября, 02:00",
+                coords: [59.929, 30.362], 
+                title: "Николаевский (Московский) вокзал",
+                desc: "Установление контроля над вокзалом для пресечения переброски верных правительству войск."
+            },
+            {
+                minutes: 210, // 03:30
+                timeStr: "25 октября, 03:30",
+                coords: [59.934, 30.278], 
+                title: "Крейсер «Аврора»",
+                desc: "Корабль бросает якорь у Николаевского моста, взяв под прицел центр города."
+            },
+            {
+                minutes: 360, // 06:00
+                timeStr: "25 октября, 06:00",
+                coords: [59.930, 30.325], 
+                title: "Государственный банк",
+                desc: "Гвардейский экипаж занимает здание. Финансовые потоки под контролем ВРК."
+            },
+            {
+                minutes: 600, // 10:00
+                timeStr: "25 октября, 10:00",
+                coords: [59.948, 30.395], 
+                title: "Смольный институт (Штаб ВРК)",
+                desc: "Публикация воззвания В.И. Ленина «К гражданам России!». Временное правительство объявлено низложенным."
+            },
+            {
+                minutes: 1300, // 21:40
+                timeStr: "25 октября, 21:40",
+                coords: [59.950, 30.316], 
+                title: "Петропавловская крепость / Нева",
+                desc: "Холостой выстрел орудия крейсера «Аврора» — сигнал к началу штурма Зимнего дворца."
+            },
+            {
+                minutes: 1570, // 02:10 (26 октября)
+                timeStr: "26 октября, 02:10",
+                coords: [59.940, 30.314], 
+                title: "Зимний дворец",
+                desc: "Штурм завершен. В.А. Антонов-Овсеенко арестовывает министров Временного правительства."
+            }
+        ];
+
+        const redIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        let currentMarkers = [];
+
+        // 3. Логика обновления карты в зависимости от времени
+        const slider = document.getElementById('time-slider');
+        const timeLabel = document.getElementById('time-label');
+
+        function updateMap() {
+            const currentMinutes = parseInt(slider.value);
+            
+            let displayTime = "";
+            if (currentMinutes < 0) {
+                displayTime = "24 октября, В преддверии...";
+            } else if (currentMinutes < 1440) {
+                let h = Math.floor(currentMinutes / 60);
+                let m = currentMinutes % 60;
+                displayTime = `25 октября, ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            } else {
+                let m = (currentMinutes - 1440) % 60;
+                let h = Math.floor((currentMinutes - 1440) / 60);
+                displayTime = `26 октября, ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            }
+            timeLabel.innerText = displayTime;
+
+            currentMarkers.forEach(marker => map.removeLayer(marker));
+            currentMarkers = [];
+            events.forEach(event => {
+                if (event.minutes <= currentMinutes) {
+                    const marker = L.marker(event.coords, {icon: redIcon}).addTo(map);
+                    
+                    marker.bindPopup(`
+                        <strong style="color: #cc0000; font-size: 16px;">${event.timeStr}</strong><br>
+                        <b>${event.title}</b><br>
+                        ${event.desc}
+                    `);
+                    
+                    currentMarkers.push(marker);
+                }
+            });
+        }
+
+        slider.addEventListener('input', updateMap);
+        updateMap();
+
+    </script>
+</body>
+</html>
